@@ -63,11 +63,11 @@ jobs:
 
       # 8. Build the Docker image
       - name: Build Docker image
-        run: docker build -t starterweb-taskboard:${{ github.sha }} .
+        run: docker build -t chakrit551:${{ github.sha }} .
 
       # 9. Run the Docker container in detached mode
       - name: Run Docker container
-        run: docker run -d -p 3000:3000 --name taskboard-app starterweb-taskboard:${{ github.sha }}
+        run: docker run -d -p 3000:3000 --name taskboard-app chakrit551:${{ github.sha }}
 
       # 10. Smoke test the application with a retry loop
       - name: Smoke test with curl
