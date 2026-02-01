@@ -52,6 +52,7 @@ jobs:
     # This job depends on the successful completion of the build-and-test job
     needs: build-and-test
     runs-on: ubuntu-latest
+    environment: DOCKERHUB
 
     # This job should only run on pushes to the main branch, after the test is fixed.
     # We leave it enabled for all pushes to demonstrate the full pipeline.
@@ -95,3 +96,18 @@ jobs:
           docker stop taskboard-app
           docker rm taskboard-app
 
+        
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            chakrit551/tinytask:latest
+            chakrit551/tinytask:${{ github.sha }}
