@@ -46,3 +46,52 @@ jobs:
           name: dist
           path: dist/
 
+
+
+  docker-smoke-test:
+    # This job depends on the successful completion of the build-and-test job
+    needs: build-and-test
+    runs-on: ubuntu-latest
+
+    # This job should only run on pushes to the main branch, after the test is fixed.
+    # We leave it enabled for all pushes to demonstrate the full pipeline.
+    # In a real project, you might add: if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 8. Build the Docker image
+      - name: Build Docker image
+        run: docker build -t starterweb-taskboard:${{ github.sha }} .
+
+      # 9. Run the Docker container in detached mode
+      - name: Run Docker container
+        run: docker run -d -p 3000:3000 --name taskboard-app starterweb-taskboard:${{ github.sha }}
+
+      # 10. Smoke test the application with a retry loop
+      - name: Smoke test with curl
+        # This script tries to connect to the /health endpoint up to 10 times.
+        # It waits 5 seconds between retries. This gives the server time to start.
+        run: |
+          echo "Waiting for container to start..."
+          for i in {1..10}; do
+            if curl -sf http://localhost:3000/health; then
+              echo "Health check passed!"
+              exit 0
+            fi
+            echo "Attempt $i failed. Retrying in 5 seconds..."
+            sleep 5
+          done
+          echo "Health check failed after 10 attempts."
+          exit 1
+
+      # 11. Stop and remove the Docker container
+      - name: Stop and remove container
+        # This step runs even if the smoke test fails, ensuring cleanup.
+        if: always()
+        run: |
+          docker logs taskboard-app
+          docker stop taskboard-app
+          docker rm taskboard-app
+
