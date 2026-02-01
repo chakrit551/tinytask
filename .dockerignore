@@ -12,4 +12,3 @@ tests
 .eslintignore
 .eslintrc.json
 jest.config.js
-tsconfig.json
