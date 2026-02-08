@@ -1,67 +1,104 @@
+
+import sqlite3 from 'sqlite3';
+import path from 'path';
+
+const dbPath = path.resolve(__dirname, '../data/tinytask.db');
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error('Could not connect to database', err);
+  } else {
+    console.log('Connected to sqlite database');
+    db.run(`CREATE TABLE IF NOT EXISTS tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT,
+            done INTEGER DEFAULT 0
+        )`);
+  }
+});
+
 export interface Task {
   id: number;
   title: string;
   done: boolean;
 }
 
-// In-memory store
-let tasks: Task[] = [
-  { id: 1, title: "Understand CI Stages", done: false },
-  { id: 2, title: "Fix the Failing Test", done: false },
-  { id: 3, title: "Review the Dockerfile", done: true },
-];
-let nextId = 4;
-
-export const getTasks = (): Task[] => tasks;
-
-/**
- * Adds a new task.
- *
- * INTENTIONAL BUG: This function does not trim whitespace from the title.
- * A title with only spaces ("   ") is considered valid, but the test expects
- * it to be rejected. This is the bug for "Lab 1" in the README.
- */
-export const addTask = (title: string): Task | null => {
-  // BUG is here: does not use .trim()
-  if (!title) {
-    return null; // Reject empty titles
-  }
-  const newTask: Task = {
-    id: nextId++,
-    title: title,
-    done: false,
-  };
-  tasks.push(newTask);
-  return newTask;
+export const getTasks = (): Promise<Task[]> => {
+  return new Promise((resolve, reject) => {
+    db.all('SELECT * FROM tasks', (err, rows: any[]) => {
+      if (err) {
+        reject(err);
+      } else {
+        const tasks = rows.map(row => ({
+          id: row.id,
+          title: row.title,
+          done: !!row.done
+        }));
+        resolve(tasks);
+      }
+    });
+  });
 };
 
-export const toggleTask = (id: number): Task | null => {
-  const task = tasks.find((t) => t.id === id);
-  if (task) {
-    task.done = !task.done;
-    return task;
-  }
-  return null;
+export const addTask = (title: string): Promise<Task | null> => {
+  return new Promise((resolve, reject) => {
+    // BUG: The original bug was that empty strings were allowed if they weren't strictly empty.
+    // But here we're implementing based on the previous implementation logic.
+    // The previous implementation checked `if (!title) return null;`
+    if (!title) {
+      return resolve(null);
+    }
+
+    const sql = 'INSERT INTO tasks (title, done) VALUES (?, 0)';
+    db.run(sql, [title], function (err) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve({
+          id: this.lastID,
+          title: title,
+          done: false
+        });
+      }
+    });
+  });
 };
 
-export const deleteTask = (id: number): boolean => {
-  // uncomment the code below to make this function works -->
+export const toggleTask = (id: number): Promise<Task | null> => {
+  return new Promise((resolve, reject) => {
+    db.get('SELECT * FROM tasks WHERE id = ?', [id], (err, row: any) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      if (!row) {
+        resolve(null);
+        return;
+      }
 
-  // const taskIndex = tasks.findIndex((t) => t.id === id);
-  // if (taskIndex > -1) {
-  //   tasks.splice(taskIndex, 1);
-  //   return true;
-  // }
-
-  return false;
+      const newDone = !row.done;
+      db.run('UPDATE tasks SET done = ? WHERE id = ?', [newDone ? 1 : 0, id], (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve({
+            id: row.id,
+            title: row.title,
+            done: newDone
+          });
+        }
+      });
+    });
+  });
 };
 
-// Function to reset tasks, useful for testing
-export const resetTasks = () => {
-  tasks = [
-    { id: 1, title: "Understand CI Stages", done: false },
-    { id: 2, title: "Fix the Failing Test", done: false },
-    { id: 3, title: "Review the Dockerfile", done: true },
-  ];
-  nextId = 4;
+export const deleteTask = (id: number): Promise<boolean> => {
+  return new Promise((resolve, reject) => {
+    db.run('DELETE FROM tasks WHERE id = ?', [id], function (err) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(this.changes > 0);
+      }
+    });
+  });
 };

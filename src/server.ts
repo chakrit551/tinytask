@@ -1,3 +1,4 @@
+
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -19,11 +20,16 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.get('/tasks', (req, res) => {
-  res.json(taskStore.getTasks());
+app.get('/tasks', async (req, res) => {
+  try {
+    const tasks = await taskStore.getTasks();
+    res.json(tasks);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching tasks' });
+  }
 });
 
-app.post('/tasks', (req, res) => {
+app.post('/tasks', async (req, res) => {
   const { title } = req.body;
 
   if (typeof title !== 'string') {
@@ -35,35 +41,49 @@ app.post('/tasks', (req, res) => {
   //     return res.status(400).json({ message: 'Title cannot be empty' });
   // }
 
-  const newTask = taskStore.addTask(title);
+  try {
+    const newTask = await taskStore.addTask(title);
 
-  if (!newTask) {
-    return res.status(400).json({ message: 'Error creating task' });
+    if (!newTask) {
+      return res.status(400).json({ message: 'Error creating task' });
+    }
+
+    res.status(201).json(newTask);
+  } catch (err) {
+    res.status(500).json({ message: 'Error creating task' });
   }
-
-  res.status(201).json(newTask);
 });
 
-app.patch('/tasks/:id/toggle', (req, res) => {
+app.patch('/tasks/:id/toggle', async (req, res) => {
   const id = parseInt(req.params.id, 10);
-  const updatedTask = taskStore.toggleTask(id);
 
-  if (!updatedTask) {
-    return res.status(404).json({ message: 'Task not found' });
+  try {
+    const updatedTask = await taskStore.toggleTask(id);
+
+    if (!updatedTask) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    res.json(updatedTask);
+  } catch (err) {
+    res.status(500).json({ message: 'Error updating task' });
   }
-
-  res.json(updatedTask);
 });
 
-app.delete('/tasks/:id', (req, res) => {
+app.delete('/tasks/:id', async (req, res) => {
   const id = parseInt(req.params.id, 10);
-  const success = taskStore.deleteTask(id);
 
-  if (!success) {
-    return res.status(404).json({ message: 'Task not found' });
+  try {
+    const success = await taskStore.deleteTask(id);
+
+    if (!success) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    res.status(204).send();
+  } catch (err) {
+    res.status(500).json({ message: 'Error deleting task' });
   }
-
-  res.status(204).send();
 });
 
 // Serve the frontend for any other route

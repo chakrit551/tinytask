@@ -17,3 +17,4 @@ lerna-debug.log*
 
 # Other
 .DS_Store
+data
