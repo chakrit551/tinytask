@@ -61,7 +61,7 @@ jobs:
 
       # 9. Run the Docker container in detached mode
       - name: Run Docker container
-        run: docker run -d -p 3000:3000 --name tinyweb-app chakrit551/tinyweb:${{ github.sha }}
+        run: docker run -d -p 3000:3000 --name tinyweb-app tinyweb:${{ github.sha }}
 
       # 10. Smoke test the application with a retry loop
       - name: Smoke test with curl
