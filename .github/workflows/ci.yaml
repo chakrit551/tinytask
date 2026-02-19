@@ -125,17 +125,17 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy-to-dokploy:
-    needs: push-to-dockerhub
-    runs-on: ubuntu-latest
+  # deploy-to-dokploy:
+  #   needs: push-to-dockerhub
+  #   runs-on: ubuntu-latest
 
-    steps:
-      # 15. Trigger Dokploy to pull the new image
-      - name: Trigger Dokploy Deploy
-        run: |
-          curl -X POST "${{ secrets.DOKPLOY_URL }}/api/application.deploy" \
-            -H "x-api-key: ${{ secrets.DOKPLOY_API_KEY }}" \
-            -H "Content-Type: application/json" \
-            -d '{"applicationId": "${{ secrets.DOKPLOY_APP_ID }}"}'
+  #   steps:
+  #     # 15. Trigger Dokploy to pull the new image
+  #     - name: Trigger Dokploy Deploy
+  #       run: |
+  #         curl -X POST "${{ secrets.DOKPLOY_URL }}/api/application.deploy" \
+  #           -H "x-api-key: ${{ secrets.DOKPLOY_API_KEY }}" \
+  #           -H "Content-Type: application/json" \
+  #           -d '{"applicationId": "${{ secrets.DOKPLOY_APP_ID }}"}'
 
 
